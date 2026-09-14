@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FitCheck
 
-## Getting Started
+Resume + job description matcher for ATS friendliness, keyword coverage, and rewrite suggestions.
 
-First, run the development server:
+## Stack
+
+- Next.js (App Router) — free deploy on Vercel
+- OpenAI ChatGPT API (production)
+- Ollama (local / private)
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env.local
+```
+
+Add your OpenAI key to `.env.local`:
+
+```bash
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
+```
+
+For local Ollama:
+
+```bash
+ollama pull llama3.1:8b
+# in .env.local
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=llama3.1:8b
+```
+
+## Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy (Vercel)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Push the repo and import it in Vercel
+2. Set `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`, `LLM_PROVIDER=openai`)
+3. Deploy
 
-## Learn More
+Ollama is for local use only unless you host it yourself and point `OLLAMA_BASE_URL` at that server.
 
-To learn more about Next.js, take a look at the following resources:
+## What it does
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Parses PDF / DOCX / TXT resumes
+2. Extracts JD keywords via LLM
+3. Scores keyword match + ATS format heuristics
+4. Returns missing keywords, checklist, and rewrite suggestions
+5. Optionally fills a **LaTeX** resume template (Deedy, Jake/sb2nov, Modern, PlushCV, Harshibar) from JD + resume — download `.tex` or compile PDF
