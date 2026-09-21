@@ -1,6 +1,7 @@
 import mammoth from "mammoth";
 import { sanitizeResumeText } from "@/lib/resume/contact";
 import { extractTextFromPdfWithOpenAi } from "./ocr";
+import { extractTextFromPdfBuffer } from "./pdf-text";
 
 function cleanExtractedText(text: string): string {
   return sanitizeResumeText(text).trim();
@@ -31,15 +32,8 @@ export async function extractResumeText(
     }
 
     if (name.endsWith(".pdf") || type === "application/pdf") {
-      const { PDFParse } = await import("pdf-parse");
-      const parser = new PDFParse({ data: buffer });
-      try {
-        const result = await parser.getText();
-        const text = cleanExtractedText(result.text || "");
-        if (text) return { text, source: "file" };
-      } finally {
-        await parser.destroy().catch(() => undefined);
-      }
+      const text = cleanExtractedText(await extractTextFromPdfBuffer(buffer));
+      if (text) return { text, source: "file" };
 
       if (allowOcr) {
         const ocrText = await extractTextFromPdfWithOpenAi(buffer, file.name);
