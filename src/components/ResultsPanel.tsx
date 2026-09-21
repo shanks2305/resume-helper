@@ -656,6 +656,9 @@ export function ResultsPanel({
               copiedKey={copiedKey}
               onCopy={(text) => void copyText("draft", text)}
               onScore={scoreAtsDraft}
+              keywords={result.keywords}
+              jdText={jdText}
+              originalScores={result.scores}
             />
           ) : null}
         </div>

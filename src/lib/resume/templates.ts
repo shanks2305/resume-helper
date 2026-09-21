@@ -1,6 +1,6 @@
 /**
- * Resume templates are LaTeX-only.
- * HTML/Markdown builders have been removed — use buildResumeLatex.
+ * Resume template catalog.
+ * LaTeX stays in ./latex; JSON/YAML (RenderCV), Typst, Markdown, HTML, and Word live in ./formats.
  */
 export {
   LATEX_TEMPLATES as RESUME_TEMPLATES,
@@ -17,12 +17,20 @@ export {
   type StructuredResume,
 } from "./structured";
 
-import { buildResumeLatex, type LatexTemplateId } from "./latex/templates";
-import {
-  plainTextToStructured,
-  structuredToPlainText,
-  type StructuredResume,
-} from "./structured";
+export {
+  buildResumeHtml,
+  buildResumeMarkdown,
+  buildResumeTypst,
+  buildRenderCvJson,
+  buildRenderCvYaml,
+  buildResumeDoc,
+  buildResumeExport,
+} from "./formats";
+
+export { FORMAT_FAMILIES, templatesFor } from "./formats/catalog";
+
+import { plainTextToStructured, structuredToPlainText, type StructuredResume } from "./structured";
+import type { LatexTemplateId } from "./latex/templates";
 
 /** Plain-text ATS export derived from structured content (for scoring). */
 export function formatResumeWithTemplate(
@@ -34,19 +42,4 @@ export function formatResumeWithTemplate(
   }
   const structured = plainTextToStructured(rawOrStructured);
   return structured ? structuredToPlainText(structured) : rawOrStructured.trim();
-}
-
-/** @deprecated Use buildResumeLatex — kept so old imports fail loudly at call sites we update. */
-export function buildResumeHtml(
-  rawOrStructured: string | StructuredResume,
-  templateId: LatexTemplateId,
-): string {
-  return buildResumeLatex(rawOrStructured, templateId);
-}
-
-/** @deprecated Markdown export removed — returns plain ATS text. */
-export function buildResumeMarkdown(
-  rawOrStructured: string | StructuredResume,
-): string {
-  return formatResumeWithTemplate(rawOrStructured);
 }

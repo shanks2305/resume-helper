@@ -55,4 +55,4 @@ Ollama is for local use only unless you host it yourself and point `OLLAMA_BASE_
 2. Extracts JD keywords via LLM
 3. Scores keyword match + ATS format heuristics
 4. Returns missing keywords, checklist, and rewrite suggestions
-5. Optionally fills a **LaTeX** resume template (Deedy, Jake/sb2nov, Modern, PlushCV, Harshibar) from JD + resume — download `.tex` or compile PDF
+5. Optionally fills an ATS resume from JD + resume. Export **LaTeX**, **RenderCV JSON/YAML**, **Typst**, **Markdown (Pandoc)**, **HTML**, or **Word .doc** — five templates each. The ATS Resume tab scores the draft against the current JD.

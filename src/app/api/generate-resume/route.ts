@@ -24,6 +24,10 @@ import {
 } from "@/lib/prompts";
 import { clientKeyFromRequest, rateLimit } from "@/lib/rate-limit";
 import {
+  ensureKeywordCoverage,
+  ensureKeywordCoverageInDraft,
+} from "@/lib/resume/keyword-coverage";
+import {
   structuredResumeSchema,
   structuredToPlainText,
 } from "@/lib/resume/structured";
@@ -123,6 +127,9 @@ export async function POST(request: Request) {
     }
 
     const scored = scoreResumeAgainstKeywords(resumeText, keywords, jd);
+    const presentKeywords = scored.matches
+      .filter((m) => m.found)
+      .map((m) => m.term);
 
     const draftResult = await withRetry(() =>
       llm.complete(
@@ -131,8 +138,10 @@ export async function POST(request: Request) {
           resume: resumeText,
           missingRequired: scored.missingRequired,
           missingPreferred: scored.missingPreferred,
+          presentKeywords,
           requiredSkills: keywords.required,
           tools: keywords.tools,
+          preferredSkills: keywords.preferred,
           atsFails: scored.atsFails,
         }),
         {
@@ -152,11 +161,20 @@ export async function POST(request: Request) {
     const json = extractJson(draftResult.text);
     const structured = atsResumeResponseSchema.safeParse(json);
     if (structured.success) {
-      const draft = structuredToPlainText(structured.data.resume);
+      const resume = ensureKeywordCoverage(
+        structured.data.resume,
+        resumeText,
+        keywords,
+      );
+      const draft = structuredToPlainText(resume);
+      const draftScores = scoreResumeAgainstKeywords(draft, keywords, jd);
       return NextResponse.json({
         draft,
-        structured: structured.data.resume,
+        structured: resume,
         notes: structured.data.notes.trim(),
+        scores: draftScores.scores,
+        missingRequired: draftScores.missingRequired,
+        missingPreferred: draftScores.missingPreferred,
         provider: llm.provider,
         model: llm.model,
         jdHash,
@@ -166,9 +184,23 @@ export async function POST(request: Request) {
 
     const legacy = legacyDraftSchema.safeParse(json);
     if (legacy.success) {
+      const repaired = ensureKeywordCoverageInDraft(
+        legacy.data.draft,
+        resumeText,
+        keywords,
+      );
+      const draftScores = scoreResumeAgainstKeywords(
+        repaired.draft,
+        keywords,
+        jd,
+      );
       return NextResponse.json({
-        draft: legacy.data.draft.trim(),
+        draft: repaired.draft,
+        structured: repaired.structured ?? undefined,
         notes: legacy.data.notes.trim(),
+        scores: draftScores.scores,
+        missingRequired: draftScores.missingRequired,
+        missingPreferred: draftScores.missingPreferred,
         provider: llm.provider,
         model: llm.model,
         jdHash,

@@ -29,6 +29,7 @@ import {
   type JdKeywords,
 } from "@/lib/schemas";
 import { mergeKeywords } from "@/lib/ats/keyword-match";
+import { ensureKeywordCoverageInDraft } from "@/lib/resume/keyword-coverage";
 import type {
   AnalyzeStepId,
   AnalyzeStreamEvent,
@@ -145,6 +146,9 @@ export async function POST(request: Request) {
               resume: resumeText,
               missingRequired: scored.missingRequired,
               missingPreferred: scored.missingPreferred,
+              presentKeywords: scored.matches
+                .filter((m) => m.found)
+                .map((m) => m.term),
               requiredSkills: keywords.required,
               tools: keywords.tools,
               preferredSkills: keywords.preferred,
@@ -161,9 +165,22 @@ export async function POST(request: Request) {
           ),
         );
         usage = addUsage(usage, suggestionResult.usage);
-        const suggestions = suggestionsSchema.parse(
+        let suggestions = suggestionsSchema.parse(
           extractJson(suggestionResult.text),
         );
+        if (suggestions.fullDraft.trim()) {
+          const repaired = ensureKeywordCoverageInDraft(
+            suggestions.fullDraft,
+            resumeText,
+            keywords,
+          );
+          suggestions = {
+            ...suggestions,
+            fullDraft: repaired.draft,
+            structuredResume:
+              repaired.structured ?? suggestions.structuredResume,
+          };
+        }
 
         const result: AnalysisResult = {
           provider: llm.provider,

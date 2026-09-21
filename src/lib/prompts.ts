@@ -33,7 +33,7 @@ Rules:
 - Be specific and actionable.
 - tailoredSummary must be a short professional summary grounded only in the resume.
 - skillsReorder should list skills/tools from the resume ordered for this JD (required terms first).
-- fullDraft is an ATS-safe plain-text resume that fills a common one-page format (name, contact, SUMMARY, SKILLS, EXPERIENCE with "Title — Company | Location | Dates" then "-" bullets, EDUCATION). Contact uses plain values or Email:/Ph:/Loc: labels — never icon names. Dense and factual. If the user opted out of ATS resume generation, set fullDraft to "".
+- fullDraft is an ATS-safe plain-text resume that fills a common one-page format (name, contact, SUMMARY, SKILLS, EXPERIENCE with "Title — Company | Location | Dates" then "-" bullets, EDUCATION). Contact uses plain values or Email:/Ph:/Loc: labels — never icon names. Dense and factual. Keep every skill already on the source resume. Use the JD's exact keyword spelling in SKILLS when the source resume supports that skill (including synonyms like k8s → Kubernetes). Target roughly 350–900 words. If the user opted out of ATS resume generation, set fullDraft to "".
 - coverLetter is a short tailored cover letter (150-250 words) with no invented experience.
 - interviewPrep is 4-6 talking points or study prompts based on keyword gaps.
 - learningTopics: 5-8 concrete topics/skills the candidate should study for THIS JD. Prioritize missing required/tools, then important JD skills they only weakly cover. Each item needs topic, why (tied to the JD), and priority.
@@ -46,6 +46,7 @@ export function buildSuggestionPrompt(input: {
   resume: string;
   missingRequired: string[];
   missingPreferred: string[];
+  presentKeywords: string[];
   requiredSkills: string[];
   tools: string[];
   preferredSkills: string[];
@@ -102,10 +103,11 @@ For learningTopics: focus on what THIS JD expects. Mark missing required/tools a
 For commonQuestions: base questions on required skills + tools from the JD (not generic soft-skill fluff).
 ${
   includeAtsResume
-    ? "Include a complete ATS-safe fullDraft tailored to this JD."
+    ? "Include a complete ATS-safe fullDraft tailored to this JD. Keep evidenced keywords using the JD's exact spelling in SKILLS."
     : 'Set fullDraft to "" (user opted out of ATS resume generation for this run).'
 }
 
+Keywords already evidenced in the resume — keep these JD spellings in fullDraft SKILLS: ${JSON.stringify(input.presentKeywords)}
 Missing required keywords: ${JSON.stringify(input.missingRequired)}
 Missing preferred keywords: ${JSON.stringify(input.missingPreferred)}
 JD required skills: ${JSON.stringify(input.requiredSkills)}
@@ -134,10 +136,12 @@ Think like Jake's Resume / moderncv: dense, factual, ATS-safe. You fill slots �
 
 Rules:
 - Never invent employers, titles, degrees, dates, certifications, metrics, or employers not in the source resume.
-- Keep every real employer and education entry; only improve wording and JD keyword coverage.
-- Prefer 2–5 bullets per role. Action + scope + outcome when the resume supports metrics.
-- Weave missing JD keywords into existing bullets only when truthful.
-- Order skills with JD-required / tools first.
+- Keep every real employer, education entry, project, and skill group from the source; only improve wording and JD keyword coverage.
+- Prefer 3–6 bullets per role. Action + scope + outcome when the resume supports metrics. Target ~350–900 words so ATS length scoring stays healthy.
+- ATS matchers look for the JD's exact phrases. In skills[], use those exact strings (e.g. "Kubernetes" not only "k8s", "CI/CD" not only "pipelines") whenever the CURRENT RESUME already shows that skill or a synonym.
+- Copy every source skill. Then put JD required + tools first. Do not shrink the skills list to look "clean".
+- Weave missing JD keywords into existing bullets and the summary when the source experience reasonably supports them. Do not invent projects to justify a keyword.
+- Keywords listed as already present MUST still appear in the rewritten resume (skills plus at least summary or one bullet).
 - Contact fields: plain values only (no icon names like envelope/phone/map-marker).
 - Omit empty optional arrays.
 Return ONLY valid JSON.`;
@@ -147,8 +151,10 @@ export function buildAtsResumePrompt(input: {
   resume: string;
   missingRequired: string[];
   missingPreferred: string[];
+  presentKeywords: string[];
   requiredSkills: string[];
   tools: string[];
+  preferredSkills: string[];
   atsFails: string[];
 }) {
   return `Fill this common resume format using ONLY facts from the CURRENT RESUME, tailored to the JOB DESCRIPTION.
@@ -197,10 +203,12 @@ notes = 1–2 sentences on what you changed for this JD.
 dates examples: "Jan 2021 – Present", "2019 – 2021".
 links = LinkedIn/GitHub/portfolio URLs only if present in the source.
 
-Missing required keywords to weave in when truthful: ${JSON.stringify(input.missingRequired)}
-Missing preferred keywords: ${JSON.stringify(input.missingPreferred)}
+Keywords already evidenced in CURRENT RESUME — you MUST keep these exact JD spellings in skills[]: ${JSON.stringify(input.presentKeywords)}
+Missing required keywords to weave in when the source reasonably supports them: ${JSON.stringify(input.missingRequired)}
+Missing preferred / tools keywords: ${JSON.stringify(input.missingPreferred)}
 JD required skills: ${JSON.stringify(input.requiredSkills)}
 JD tools / tech: ${JSON.stringify(input.tools)}
+JD preferred skills: ${JSON.stringify(input.preferredSkills)}
 ATS format issues: ${JSON.stringify(input.atsFails)}
 
 JOB DESCRIPTION:
