@@ -5,15 +5,15 @@ import { DOMMatrix, ImageData, Path2D } from "@napi-rs/canvas";
  * In Next/Turbopack the hashed `pdf-parse` external cannot `require("@napi-rs/canvas")`
  * from `import.meta.url`, so install the Node canvas globals first.
  */
+function defineIfMissing(name: "DOMMatrix" | "ImageData" | "Path2D", value: unknown) {
+  const g = globalThis as Record<string, unknown>;
+  if (g[name] == null) g[name] = value;
+}
+
 function ensurePdfJsDomPolyfills() {
-  const g = globalThis as typeof globalThis & {
-    DOMMatrix?: typeof DOMMatrix;
-    ImageData?: typeof ImageData;
-    Path2D?: typeof Path2D;
-  };
-  g.DOMMatrix ??= DOMMatrix;
-  g.ImageData ??= ImageData;
-  g.Path2D ??= Path2D;
+  defineIfMissing("DOMMatrix", DOMMatrix);
+  defineIfMissing("ImageData", ImageData);
+  defineIfMissing("Path2D", Path2D);
 }
 
 export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> {
